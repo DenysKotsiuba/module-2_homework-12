@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "homework-11"
+version = "0.1.0"
+description = ""
+authors = ["Denys Kotsiuba"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "~3.11"
+uvicorn = {extras = ["standart"], version = "0.22.0"}
+SQLAlchemy = "2.0.17"
+psycopg2-binary = "2.9.6"
+alembic = "1.11.1"
+fastapi = "^0.99.1"
+pydantic = {version = "1.10.10", extras = ["email"]}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
