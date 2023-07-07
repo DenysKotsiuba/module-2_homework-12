@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "homework-11"
+name = "homework-12"
 version = "0.1.0"
 description = ""
 authors = ["Denys Kotsiuba"]
@@ -13,6 +13,10 @@ psycopg2-binary = "2.9.6"
 alembic = "1.11.1"
 fastapi = "^0.99.1"
 pydantic = {version = "1.10.10", extras = ["email"]}
+libgravatar = "^1.0.4"
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+python-jose = {extras = ["cryptograph"], version = "^3.3.0"}
+python-multipart = "^0.0.6"
 
 
 [build-system]

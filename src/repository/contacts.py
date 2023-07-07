@@ -1,22 +1,22 @@
-from fastapi import Depends, HTTPException, status, Path, Query
+from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
 from datetime import date
 
 from src.database.db import get_db
-from src.database.models import Contact
-from src.schemas import ContactModel
+from src.database.models import Contact, User
+from src.schemas.contacts import ContactModel
 
 
-async def get_contacts(limit: int, offset: int, db: Session):
-    contacts = db.query(Contact).order_by(Contact.id).limit(limit).offset(offset).all()
+async def get_contacts(limit: int, offset: int, user: User, db: Session):
+    contacts = db.query(Contact).filter_by(user_id=user.id).order_by(Contact.id).limit(limit).offset(offset).all()
     
     return contacts
 
 
-async def get_contact_by_id(contact_id: int, db: Session):
-    contact = db.query(Contact).filter_by(id=contact_id).first()
+async def get_contact_by_id(contact_id: int, user: User, db: Session):
+    contact = db.query(Contact).filter(and_(Contact.user_id==user.id, Contact.id==contact_id)).first()
 
     if contact is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
@@ -24,8 +24,8 @@ async def get_contact_by_id(contact_id: int, db: Session):
     return contact
 
 
-async def get_contact_by_first_name(contact_first_name: str, db: Session = Depends(get_db)):
-    contact = db.query(Contact).filter_by(first_name=contact_first_name).first()
+async def get_contact_by_first_name(contact_first_name: str, user: User, db: Session):
+    contact = db.query(Contact).filter(and_(Contact.user_id==user.id, Contact.first_name==contact_first_name)).first()
 
     if contact is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
@@ -33,8 +33,8 @@ async def get_contact_by_first_name(contact_first_name: str, db: Session = Depen
     return contact
 
 
-async def get_contact_by_last_name(contact_last_name: str, db: Session = Depends(get_db)):
-    contact = db.query(Contact).filter_by(last_name=contact_last_name).first()
+async def get_contact_by_last_name(contact_last_name: str, user: User, db: Session):
+    contact = db.query(Contact).filter(and_(Contact.user_id==user.id, Contact.last_name==contact_last_name)).first()
 
     if contact is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
@@ -42,8 +42,8 @@ async def get_contact_by_last_name(contact_last_name: str, db: Session = Depends
     return contact
 
 
-async def get_contact_by_email(contact_email: str, db: Session = Depends(get_db)):
-    contact = db.query(Contact).filter_by(email=contact_email).first()
+async def get_contact_by_email(contact_email: str, user: User, db: Session):
+    contact = db.query(Contact).filter(and_(Contact.user_id==user.id, Contact.email==contact_email)).first()
 
     if contact is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
@@ -51,13 +51,13 @@ async def get_contact_by_email(contact_email: str, db: Session = Depends(get_db)
     return contact
 
 
-async def get_week_birthday_people(db: Session):
+async def get_week_birthday_people(user: User, db: Session):
     birthday_people = []
 
     today = date.today()
     week = [date(year=today.year, month=today.month, day=today.day+num) for num in range(7)]
 
-    objs = db.query(Contact).all()
+    objs = db.query(Contact).filter_by(user_id=user.id).all()
 
     for obj in objs:
         this_year_birthday = obj.birth_date.replace(year=today.year)
@@ -68,13 +68,13 @@ async def get_week_birthday_people(db: Session):
     return birthday_people
 
 
-async def create_contact(body: ContactModel, db: Session = Depends(get_db)):
+async def create_contact(body: ContactModel, user: User, db: Session):
     contact = db.query(Contact).filter_by(email=body.email).first()
 
     if contact:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email exists")
     
-    contact = Contact(**body.dict())
+    contact = Contact(**body.dict(), user_id=user.id)
     db.add(contact)
     db.commit()
     db.refresh(contact)
@@ -82,13 +82,13 @@ async def create_contact(body: ContactModel, db: Session = Depends(get_db)):
     return contact
     
 
-async def update_contact(body: ContactModel, contact_id: int, db: Session = Depends(get_db)):
-    contact = db.query(Contact).filter(and_(Contact.id!=contact_id, Contact.email==body.email)).first()
+async def update_contact(body: ContactModel, contact_id: int, user: User, db: Session):
+    contact = db.query(Contact).filter(Contact.email==body.email).first()
 
     if contact:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email exists")
     
-    contact = db.query(Contact).filter_by(id=contact_id).first()
+    contact = db.query(Contact).filter(and_(Contact.user_id==user.id, Contact.id==contact_id)).first()
 
     if contact is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
@@ -103,8 +103,8 @@ async def update_contact(body: ContactModel, contact_id: int, db: Session = Depe
     return contact
 
 
-async def remove_contact(contact_id: int, db: Session = Depends(get_db)):
-    contact = db.query(Contact).filter_by(id=contact_id).first()
+async def remove_contact(contact_id: int, user: User, db: Session):
+    contact = db.query(Contact).filter(and_(Contact.user_id==user.id, Contact.id==contact_id)).first()
 
     if contact is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
